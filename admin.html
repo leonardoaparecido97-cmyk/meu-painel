@@ -9,44 +9,40 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --yellow: #d29922; --red: #da3633; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; padding: 15px; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 15px; }
         .hidden { display: none !important; }
         
-        /* Stats */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+        
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 8px; text-align: center; }
         .stat-card h4 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
-        .stat-card p { margin: 5px 0 0 0; font-size: 20px; font-weight: bold; }
+        .stat-card p { margin: 5px 0 0 0; font-size: 22px; font-weight: bold; }
 
-        /* Filtros e Busca */
         .search-area { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
-        .filter-btns { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
-        .f-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #8b949e; cursor: pointer; font-size: 12px; }
+        .filter-btns { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .f-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #8b949e; cursor: pointer; font-size: 12px; white-space: nowrap; }
         .f-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Tabela */
         .table-res { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 12px; color: #8b949e; border-bottom: 1px solid var(--border); font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+        th { text-align: left; padding: 12px; color: #8b949e; border-bottom: 1px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid var(--border); }
-        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
 
-        /* Modal Estilo TacadinhaPro */
         #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 99; backdrop-filter: blur(4px); }
-        #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 90%; max-width: 450px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-        .modal-header { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
-        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-        .row label { color: #8b949e; }
+        #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 92%; max-width: 450px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; border-bottom: 1px solid #21262d; padding-bottom: 5px; }
         
-        .input-group { display: flex; gap: 5px; margin-top: 15px; }
-        select, input { background: #0d1117; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; flex: 1; }
-        .btn-action { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: 0.2s; }
+        .input-group { display: flex; gap: 5px; margin: 15px 0; }
+        select, input { background: #0d1117; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; flex: 1; }
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" style="max-width:350px; margin: 80px auto; text-align: center;">
-        <h2 style="color: var(--blue);">TacadinhaPro Clone</h2>
+    <div id="login-screen" style="max-width:350px; margin: 100px auto; text-align: center;">
+        <h2 style="color: var(--blue);">Cheto Master Pro Login</h2>
         <input type="email" id="email" placeholder="E-mail">
         <input type="password" id="pass" placeholder="Senha">
         <button class="btn-action" style="background: var(--blue); color: white;" onclick="fazerLogin()">ENTRAR NO PAINEL</button>
@@ -61,7 +57,7 @@
         </div>
 
         <div class="search-area">
-            <input type="text" id="searchInput" placeholder="Pesquisar por chave ou email..." onkeyup="renderizarTabela()" style="width: 100%; box-sizing: border-box;">
+            <input type="text" id="searchInput" placeholder="Pesquisar por chave..." onkeyup="renderizarTabela()" style="width: 100%; box-sizing: border-box;">
             <div class="filter-btns">
                 <button class="f-btn active" id="f-todos" onclick="setFiltro('todos')">Todos</button>
                 <button class="f-btn" id="f-ativas" onclick="setFiltro('ativas')">Ativas</button>
@@ -72,9 +68,7 @@
 
         <div class="table-res">
             <table>
-                <thead>
-                    <tr><th>CHAVE</th><th>STATUS</th><th>EXPIRA</th><th>AÇÕES</th></tr>
-                </thead>
+                <thead><tr><th>CHAVE</th><th>STATUS</th><th>EXPIRA EM</th><th>AÇÃO</th></tr></thead>
                 <tbody id="tabela-corpo"></tbody>
             </table>
         </div>
@@ -82,32 +76,24 @@
 
     <div id="overlay" onclick="fecharModal()"></div>
     <div id="modal">
-        <div class="modal-header">
-            <h3 style="margin:0; font-size: 16px;">Detalhes da Licença</h3>
-        </div>
-        
-        <div id="modal-info">
-            <div class="row"><label>Chave</label><b id="m-key">---</b></div>
-            <div class="row"><label>Status</label><span id="m-status">---</span></div>
-            <div class="row"><label>Dispositivos</label><span id="m-dev">0/1</span></div>
-            <div class="row"><label>Expira em</label><span id="m-exp">---</span></div>
-            <div class="row"><label>Criada por</label><span id="m-by" style="font-size: 11px;">---</span></div>
-        </div>
+        <h3 id="m-key" style="margin:0 0 20px 0; color: var(--blue);">CHAVE</h3>
+        <div class="row"><label>Status</label><b id="m-status">---</b></div>
+        <div class="row"><label>Aparelho (HWID)</label><span id="m-hwid" style="font-size:10px;">---</span></div>
+        <div class="row"><label>Expiração</label><span id="m-exp">---</span></div>
 
-        <div style="border-top: 1px solid var(--border); margin-top: 15px; padding-top: 15px;">
-            <label style="font-size: 12px; color: #8b949e;">Estender Tempo:</label>
+        <div style="margin-top:20px; border-top: 1px solid var(--border); padding-top: 15px;">
+            <label style="font-size:11px; color:#8b949e;">Adicionar Tempo Personalizado:</label>
             <div class="input-group">
-                <input type="number" id="ext-val" value="1">
+                <input type="number" id="ext-val" value="1" min="1">
                 <select id="ext-unit">
                     <option value="min">Minutos</option>
                     <option value="hor">Horas</option>
                     <option value="dia">Dias</option>
                 </select>
             </div>
-            <button class="btn-action" style="background: var(--green); color: white;" onclick="estenderTempo()">ADICIONAR TEMPO</button>
-            <button class="btn-action" style="background: var(--yellow); color: black;" onclick="resetarHwid()">RESETAR DISPOSITIVOS</button>
-            <button class="btn-action" style="background: var(--red); color: white;" onclick="excluirChave()">EXCLUIR CHAVE</button>
-            <button class="btn-action" style="background: transparent; color: #8b949e; border: 1px solid var(--border);" onclick="fecharModal()">FECHAR</button>
+            <button class="btn-action" style="background: var(--green); color: white;" onclick="estenderTempo()">SALVAR NOVO TEMPO</button>
+            <button class="btn-action" style="background: var(--yellow); color: #000;" onclick="resetarHwid()">LIMPAR DISPOSITIVO (RESET)</button>
+            <button class="btn-action" style="background: var(--red); color: white;" onclick="excluirChave()">CANCELAR / EXCLUIR</button>
         </div>
     </div>
 
@@ -132,7 +118,7 @@
         function fazerLogin() {
             const e = document.getElementById('email').value;
             const p = document.getElementById('pass').value;
-            auth.signInWithEmailAndPassword(e, p).catch(err => alert("Erro: " + err.message));
+            auth.signInWithEmailAndPassword(e, p).catch(err => alert("Login Inválido"));
         }
 
         auth.onAuthStateChanged(user => {
@@ -164,27 +150,26 @@
 
             for (let id in dadosLocais) {
                 let item = dadosLocais[id];
-                let isAtiva = (item.hwid && item.hwid !== "");
-                let timestampExp = item.timestamp_exp || 0;
-                let expirada = (timestampExp > 0 && agora > timestampExp);
+                let t_exp = item.timestamp_exp || 0;
                 
-                // Contadores
-                t++;
-                if(expirada) e++; 
-                else if(isAtiva) a++; 
-                else p++;
+                // LÓGICA DE STATUS CORRIGIDA
+                let expirada = (t_exp > 0 && agora > t_exp);
+                let ativa = (item.hwid && item.hwid !== "" && !expirada);
+                let pendente = (!ativa && !expirada);
 
-                // Filtros
-                if(filtroAtivo === 'ativas' && (!isAtiva || expirada)) continue;
-                if(filtroAtivo === 'pendentes' && isAtiva) continue;
+                t++;
+                if(expirada) e++; else if(ativa) a++; else p++;
+
+                if(filtroAtivo === 'ativas' && !ativa) continue;
+                if(filtroAtivo === 'pendentes' && !pendente) continue;
                 if(filtroAtivo === 'expiradas' && !expirada) continue;
                 if(busca && !id.toLowerCase().includes(busca)) continue;
 
                 html += `<tr>
                     <td><b>${id}</b></td>
-                    <td><span class="status-badge" style="background:${expirada?'var(--red)':isAtiva?'var(--green)':'var(--yellow)'}">${expirada?'EXPIRADA':isAtiva?'ATIVA':'PENDENTE'}</span></td>
-                    <td style="color:#8b949e">${item.expira || 'N/A'}</td>
-                    <td><button onclick="abrirModal('${id}')" style="background:var(--blue); border:none; color:white; padding:4px 8px; border-radius:4px; font-size:10px; cursor:pointer;">VER</button></td>
+                    <td><span class="status-badge" style="background:${expirada? 'var(--red)' : ativa? 'var(--green)' : 'var(--yellow)'}">${expirada?'Expirada':ativa?'Ativa':'Pendente'}</span></td>
+                    <td style="color:#8b949e; font-size:11px;">${item.expira || 'N/A'}</td>
+                    <td><button onclick="abrirModal('${id}')" style="background:var(--blue); border:none; color:white; padding:5px 10px; border-radius:4px; cursor:pointer;">GERENCIAR</button></td>
                 </tr>`;
             }
             document.getElementById("tabela-corpo").innerHTML = html;
@@ -198,11 +183,9 @@
             chaveAberta = id;
             let item = dadosLocais[id];
             document.getElementById("m-key").innerText = id;
-            document.getElementById("m-status").innerText = (item.hwid ? "Ativa" : "Pendente");
-            document.getElementById("m-dev").innerText = (item.hwid ? "1/1" : "0/1");
-            document.getElementById("m-exp").innerText = item.expira || "N/A";
-            document.getElementById("m-by").innerText = auth.currentUser.email;
-            
+            document.getElementById("m-hwid").innerText = item.hwid || "Livre (Aguardando uso)";
+            document.getElementById("m-exp").innerText = item.expira || "Sem validade definida";
+            document.getElementById("m-status").innerText = (item.hwid ? "Em uso" : "Disponível");
             document.getElementById("modal").style.display = "block";
             document.getElementById("overlay").style.display = "block";
         }
@@ -215,30 +198,37 @@
         function estenderTempo() {
             const val = parseInt(document.getElementById("ext-val").value);
             const unit = document.getElementById("ext-unit").value;
-            let ms = 0;
+            let msAdicional = 0;
             
-            if(unit === 'min') ms = val * 60000;
-            if(unit === 'hor') ms = val * 3600000;
-            if(unit === 'dia') ms = val * 86400000;
+            if(unit === 'min') msAdicional = val * 60000;
+            if(unit === 'hor') msAdicional = val * 3600000;
+            if(unit === 'dia') msAdicional = val * 86400000;
 
-            const novaExp = Date.now() + ms;
-            const dataFormatada = new Date(novaExp).toLocaleString();
+            // Se a chave já tem tempo, soma ao tempo dela. Se não, soma ao 'agora'.
+            const baseTime = (dadosLocais[chaveAberta].timestamp_exp && dadosLocais[chaveAberta].timestamp_exp > Date.now()) 
+                             ? dadosLocais[chaveAberta].timestamp_exp 
+                             : Date.now();
+
+            const novaExp = baseTime + msAdicional;
+            const dataTxt = new Date(novaExp).toLocaleString('pt-BR');
 
             db.ref("keys/" + chaveAberta).update({
                 timestamp_exp: novaExp,
-                expira: dataFormatada
+                expira: dataTxt
             }).then(() => {
-                alert("Tempo adicionado com sucesso!");
+                alert("Tempo atualizado!");
                 fecharModal();
             });
         }
 
         function resetarHwid() {
-            db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Dispositivo resetado!"));
+            db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Dispositivo limpo!"));
         }
 
         function excluirChave() {
-            if(confirm("Excluir?")) db.ref("keys/" + chaveAberta).remove().then(() => fecharModal());
+            if(confirm("Deseja apagar esta chave do banco?")) {
+                db.ref("keys/" + chaveAberta).remove().then(() => fecharModal());
+            }
         }
     </script>
 </body>
