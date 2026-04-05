@@ -3,42 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Gestão - Cheto Master</title>
+    <title>Painel Gestão - Cheto Master v6</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --yellow: #d29922; --red: #da3633; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 10px; }
         .hidden { display: none !important; }
+        
+        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 8px; text-align: center; }
-        .stat-card p { margin: 5px 0 0 0; font-size: 18px; font-weight: bold; }
+        .stat-card h4 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        .stat-card p { margin: 5px 0 0 0; font-size: 20px; font-weight: bold; }
+
+        /* Filtros e Busca */
         .search-area { background: var(--card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
+        input, select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        .f-label { font-size: 11px; color: #8b949e; margin-top: 10px; display: block; }
+
+        /* Tabela */
         .table-res { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 700px; }
-        th { text-align: left; padding: 10px; color: #8b949e; border-bottom: 1px solid var(--border); }
-        td { padding: 10px; border-bottom: 1px solid var(--border); }
-        .status-badge { padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: bold; }
-        #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 90%; max-width: 420px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; }
-        #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 99; }
-        input, select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 5px; width: 100%; box-sizing: border-box; }
-        .btn-action { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+        th { text-align: left; padding: 12px; color: #8b949e; border-bottom: 1px solid var(--border); }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: bold; text-transform: uppercase; }
+
+        /* Modal */
+        #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 99; backdrop-filter: blur(3px); }
+        #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 90%; max-width: 420px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; border-bottom: 1px solid #21262d; padding-bottom: 4px; }
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: 0.2s; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" style="max-width:320px; margin: 80px auto; text-align: center;">
-        <h2 style="color: var(--blue);">Cheto Master Login</h2>
+    <div id="login-screen" style="max-width:320px; margin: 100px auto; text-align: center;">
+        <h2 style="color: var(--blue);">Cheto Master Admin</h2>
         <input type="email" id="email" placeholder="E-mail" style="margin-bottom:10px;">
         <input type="password" id="pass" placeholder="Senha" style="margin-bottom:10px;">
         <button class="btn-action" style="background: var(--blue); color: white;" onclick="fazerLogin()">ENTRAR NO PAINEL</button>
     </div>
 
     <div id="main-content" class="hidden">
-        <div style="margin-bottom: 15px;">
-            <span id="user-welcome" style="font-size: 12px; color: var(--blue);">Bem-vindo</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <span id="user-welcome" style="font-size: 12px; color: var(--blue);">Carregando...</span>
             <button onclick="auth.signOut().then(()=>location.reload())" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:10px;">[ Sair ]</button>
         </div>
 
@@ -50,9 +61,16 @@
         </div>
 
         <div class="search-area">
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="searchInput" placeholder="Buscar por chave ou vendedor..." onkeyup="renderizarTabela()">
-                <button onclick="configurarNovaChave()" style="background:var(--green); border:none; color:white; padding:0 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ GERAR</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="searchInput" placeholder="Buscar por chave ou usuário..." onkeyup="renderizarTabela()">
+                <button onclick="gerarChaveComTempo()" style="background:var(--green); border:none; color:white; padding:0 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ GERAR</button>
+            </div>
+            
+            <div id="admin-filter-area" class="hidden">
+                <span class="f-label">Filtrar por Vendedor (Admin):</span>
+                <select id="sellerFilter" onchange="renderizarTabela()">
+                    <option value="todos">Todos os Vendedores</option>
+                </select>
             </div>
         </div>
 
@@ -67,17 +85,26 @@
     <div id="overlay" onclick="fecharModal()"></div>
     <div id="modal">
         <h3 id="m-key" style="margin:0 0 15px 0; color: var(--blue);">CHAVE</h3>
-        <p style="font-size: 11px;">Vendedor: <span id="m-vendedor" style="color: var(--yellow)">---</span></p>
-        <input type="text" id="new-user" placeholder="Nome do Usuário">
-        <div style="display: flex; gap: 5px; margin: 10px 0;">
+        <div class="row"><label>Criada por:</label><span id="m-vendedor" style="color: var(--yellow)">---</span></div>
+        <div class="row"><label>HWID:</label><span id="m-hwid" style="font-size:10px;">---</span></div>
+        
+        <label class="f-label">Dono / Usuário:</label>
+        <input type="text" id="new-user" placeholder="Nome do cliente">
+        
+        <label class="f-label">Adicionar Tempo:</label>
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
             <input type="number" id="ext-val" value="1">
             <select id="ext-unit">
-                <option value="min">Minutos</option><option value="hor">Horas</option><option value="dia">Dias</option>
+                <option value="min">Minutos</option>
+                <option value="hor">Horas</option>
+                <option value="dia">Dias</option>
             </select>
         </div>
-        <button class="btn-action" style="background: var(--green); color: white;" onclick="salvarAlteracoes()">SALVAR</button>
-        <button class="btn-action" id="btn-del" style="background: var(--red); color: white;" onclick="excluirChave()">EXCLUIR</button>
-        <button class="btn-action" style="background: #444; color: white;" onclick="fecharModal()">CANCELAR</button>
+        
+        <button class="btn-action" style="background: var(--green); color: white;" onclick="salvarAlteracoes()">SALVAR ALTERAÇÕES</button>
+        <button class="btn-action" style="background: var(--yellow); color: black;" onclick="resetarHwid()">RESETAR HWID (LIMPAR)</button>
+        <button id="btn-del" class="btn-action" style="background: var(--red); color: white;" onclick="excluirChave()">EXCLUIR CHAVE</button>
+        <button class="btn-action" style="background: #333; color: white;" onclick="fecharModal()">FECHAR</button>
     </div>
 
     <script>
@@ -95,23 +122,22 @@
         const auth = firebase.auth();
         const db = firebase.database();
         
-        // SUBSTITUA PELO SEU E-MAIL PARA TER ACESSO TOTAL
         const ADMIN_EMAIL = "suno69644@gmail.com"; 
-
         let dadosLocais = {};
         let chaveAberta = "";
 
         function fazerLogin() {
             const e = document.getElementById('email').value;
             const p = document.getElementById('pass').value;
-            auth.signInWithEmailAndPassword(e, p).catch(err => alert("E-mail ou Senha incorretos."));
+            auth.signInWithEmailAndPassword(e, p).catch(err => alert("Erro: " + err.message));
         }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
-                document.getElementById('user-welcome').innerText = "Logado como: " + user.email;
+                document.getElementById('user-welcome').innerText = "Vendedor: " + user.email;
+                if(user.email === ADMIN_EMAIL) document.getElementById('admin-filter-area').classList.remove('hidden');
                 carregarDados();
             }
         });
@@ -127,75 +153,84 @@
             const userLogado = auth.currentUser.email;
             const isAdmin = (userLogado === ADMIN_EMAIL);
             const busca = document.getElementById('searchInput').value.toLowerCase();
+            const filtroVendedor = document.getElementById('sellerFilter').value;
             const agora = Date.now();
+            
             let t=0, a=0, e=0, p=0, html="";
+            let vendedores = new Set();
 
-            // Ordenação: Novas primeiro
             const keys = Object.keys(dadosLocais).sort((a,b) => (dadosLocais[b].criada_em || 0) - (dadosLocais[a].criada_em || 0));
 
             for (let id of keys) {
                 let item = dadosLocais[id];
-                let vendedor = item.vendedor || "Sistema";
+                let vend = item.vendedor || "Sistema";
+                if(item.vendedor) vendedores.add(item.vendedor);
 
-                // FILTRO DE VENDEDOR: Se não for admin, só vê as dele
-                if (!isAdmin && vendedor !== userLogado) continue;
+                if (!isAdmin && vend !== userLogado) continue;
+                if (isAdmin && filtroVendedor !== "todos" && vend !== filtroVendedor) continue;
 
                 let t_exp = item.timestamp_exp || 0;
                 let expirada = (t_exp > 0 && agora > t_exp);
-                let ativa = ((item.hwid && item.hwid !== "") || (item.usuario)) && !expirada;
+                let ativa = (item.usuario || (item.hwid && item.hwid !== "")) && !expirada;
                 let pendente = (!ativa && !expirada);
 
                 if(expirada) e++; else if(ativa) a++; else p++;
                 t++;
 
-                if(busca && !id.toLowerCase().includes(busca) && !vendedor.toLowerCase().includes(busca)) continue;
+                if(busca && !id.toLowerCase().includes(busca) && !vend.toLowerCase().includes(busca) && !(item.usuario && item.usuario.toLowerCase().includes(busca))) continue;
 
                 html += `<tr>
                     <td><b>${id}</b></td>
-                    <td style="color:var(--yellow)">${vendedor.split('@')[0]}</td>
+                    <td style="color:var(--yellow)">${vend.split('@')[0]}</td>
                     <td style="color:var(--blue)">${item.usuario || '---'}</td>
                     <td><span class="status-badge" style="background:${expirada?'var(--red)':ativa?'var(--green)':'var(--yellow)'}">${expirada?'Exp':ativa?'Ativa':'Pend'}</span></td>
-                    <td style="color:#8b949e; font-size:9px;">${item.expira || 'N/A'}</td>
-                    <td><button onclick="abrirModal('${id}')" style="background:#30363d; border:1px solid #444; color:white; padding:3px 6px; border-radius:4px; cursor:pointer;">INFO</button></td>
+                    <td style="color:#8b949e; font-size:10px;">${item.expira || 'N/A'}</td>
+                    <td><button onclick="abrirModal('${id}')" style="background:#30363d; border:1px solid #444; color:white; padding:4px 8px; border-radius:4px; cursor:pointer;">GERIR</button></td>
                 </tr>`;
             }
+
+            if(isAdmin) {
+                const select = document.getElementById('sellerFilter');
+                const atual = select.value;
+                select.innerHTML = '<option value="todos">Todos os Vendedores</option>';
+                vendedores.forEach(v => select.innerHTML += `<option value="${v}" ${atual===v?'selected':''}>${v}</option>`);
+            }
+
             document.getElementById("tabela-corpo").innerHTML = html;
             document.getElementById("total").innerText = t; document.getElementById("ativas").innerText = a;
             document.getElementById("expiradas").innerText = e; document.getElementById("pendentes").innerText = p;
         }
 
-        function configurarNovaChave() {
-            const tempo = prompt("Tempo (ex: 24 horas, 30 dias):");
+        function gerarChaveComTempo() {
+            const tempo = prompt("Qual a validade? (Ex: 30 dias, 24 horas, 1 hora)");
             if (!tempo) return;
             
             const k = "CHETO-" + Math.random().toString(36).substring(2, 9).toUpperCase();
             let ms = 86400000;
             if(tempo.includes("hora")) ms = parseInt(tempo) * 3600000;
-            if(tempo.includes("dia")) ms = parseInt(tempo) * 86400000;
+            else if(tempo.includes("dia")) ms = parseInt(tempo) * 86400000;
+            else if(tempo.includes("min")) ms = parseInt(tempo) * 60000;
 
             const exp = Date.now() + ms;
             db.ref("keys/" + k).set({
-                vendedor: auth.currentUser.email, // GRAVA QUEM CRIOU
+                vendedor: auth.currentUser.email,
                 usuario: "",
                 hwid: "",
                 timestamp_exp: exp,
                 expira: new Date(exp).toLocaleString('pt-BR'),
                 criada_em: Date.now()
-            }).then(() => alert("Gerada: " + k));
+            }).then(() => alert("CHAVE GERADA!\n\nID: " + k + "\nTempo: " + tempo));
         }
 
         function abrirModal(id) {
             chaveAberta = id;
             let item = dadosLocais[id];
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
-            
             document.getElementById("m-key").innerText = id;
             document.getElementById("m-vendedor").innerText = item.vendedor || "Admin";
+            document.getElementById("m-hwid").innerText = item.hwid || "Livre";
             document.getElementById("new-user").value = item.usuario || "";
-            
-            // Só o dono pode excluir chaves de outros
             document.getElementById("btn-del").style.display = (isAdmin || item.vendedor === auth.currentUser.email) ? "block" : "none";
-
             document.getElementById("modal").style.display = "block";
             document.getElementById("overlay").style.display = "block";
         }
@@ -218,7 +253,8 @@
             }).then(() => { alert("Salvo!"); fecharModal(); });
         }
 
-        function excluirChave() { if(confirm("Apagar?")) db.ref("keys/" + chaveAberta).remove().then(() => fecharModal()); }
+        function resetarHwid() { db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("HWID Resetado!")); }
+        function excluirChave() { if(confirm("Excluir?")) db.ref("keys/" + chaveAberta).remove().then(() => fecharModal()); }
     </script>
 </body>
 </html>
