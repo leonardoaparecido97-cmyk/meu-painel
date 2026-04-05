@@ -8,64 +8,79 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        body { background: #0a0a0e; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; }
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --bg: #0a0a0e; --card: #16161d; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; margin: 0; padding: 15px; }
         .hidden { display: none !important; }
-        /* Dashboard */
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
-        .card { background: #16161d; padding: 15px; border-radius: 10px; border: 1px solid #2d2d35; text-align: center; }
-        .card h3 { font-size: 10px; color: #888; text-transform: uppercase; margin: 0; }
-        .card p { font-size: 22px; font-weight: bold; margin: 5px 0 0 0; }
+        
+        /* Stats e Filtros */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid #2d2d35; text-align: center; }
+        .card h3 { font-size: 9px; color: #888; text-transform: uppercase; margin: 0; }
+        .card p { font-size: 20px; font-weight: bold; margin: 5px 0 0 0; }
+
+        /* Barra de Busca */
+        .search-box { width: 100%; padding: 12px; background: var(--card); border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        .filter-bar { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .f-btn { padding: 8px 15px; border-radius: 20px; border: 1px solid #333; background: #1f1f27; color: #888; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .f-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
         /* Tabela */
-        table { width: 100%; border-collapse: collapse; background: #16161d; border-radius: 10px; overflow: hidden; font-size: 13px; }
+        .table-container { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #2d2d35; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d2d35; }
         th { background: #1f1f27; color: #aaa; }
-        tr:active { background: #252530; }
+
         /* Modal */
-        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c24; padding: 25px; border-radius: 15px; border: 2px solid #007bff; width: 85%; z-index: 1000; }
+        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c24; padding: 25px; border-radius: 20px; border: 1px solid var(--primary); width: 88%; max-width: 450px; z-index: 1000; }
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; }
-        .btn { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
-        .log-box { background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 10px; color: #00ff88; margin-top: 10px; max-height: 80px; overflow-y: auto; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px 0; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" style="text-align: center; margin-top: 50px;">
-        <h2>Acesso Restrito</h2>
-        <input type="email" id="email" placeholder="E-mail" style="width:80%; padding:10px; margin:5px; border-radius:5px;">
-        <input type="password" id="pass" placeholder="Senha" style="width:80%; padding:10px; margin:5px; border-radius:5px;">
-        <button class="btn" style="background:#007bff; color:white; width:85%;" onclick="fazerLogin()">ENTRAR NO PAINEL</button>
+    <div id="login-screen" style="max-width: 350px; margin: 50px auto; text-align: center;">
+        <h2>Admin Login</h2>
+        <input type="email" id="email" placeholder="E-mail" style="width:100%; padding:12px; margin:8px 0; background:#16161d; border:1px solid #333; color:white; border-radius:8px;">
+        <input type="password" id="pass" placeholder="Senha" style="width:100%; padding:12px; margin:8px 0; background:#16161d; border:1px solid #333; color:white; border-radius:8px;">
+        <button class="btn" style="background:var(--primary)" onclick="fazerLogin()">ENTRAR</button>
     </div>
 
     <div id="main-content" class="hidden">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin:0;">CHETO MASTER PRO</h2>
-            <button onclick="gerarChave()" style="background:#28a745; color:white; border:none; padding:8px 12px; border-radius:5px;">+ NOVA</button>
+            <h3 style="margin:0;">PAINEL ELITE</h3>
+            <button onclick="gerarChave()" style="background:var(--success); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold;">+ GERAR</button>
         </div>
 
         <div class="grid">
             <div class="card"><h3>Total</h3><p id="total">0</p></div>
-            <div class="card"><h3>Ativas</h3><p id="ativas" style="color:#00ff88;">0</p></div>
-            <div class="card"><h3>Pends</h3><p id="pendentes" style="color:#ffcc33;">0</p></div>
+            <div class="card"><h3>Ativas</h3><p id="ativas" style="color:var(--success)">0</p></div>
+            <div class="card"><h3>Pends</h3><p id="pendentes" style="color:var(--warning)">0</p></div>
         </div>
 
-        <table>
-            <thead><tr><th>CHAVE</th><th>STATUS</th><th>VENCIMENTO</th></tr></thead>
-            <tbody id="tabela-corpo"></tbody>
-        </table>
+        <input type="text" id="searchInput" class="search-box" placeholder="Buscar chave ou HWID..." onkeyup="filtrarTabela()">
+        <div class="filter-bar">
+            <button class="f-btn active" id="f-all" onclick="setFiltro('todos')">TODAS</button>
+            <button class="f-btn" id="f-active" onclick="setFiltro('ativas')">ATIVAS</button>
+            <button class="f-btn" id="f-pending" onclick="setFiltro('pendentes')">PENDENTES</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead><tr><th>CHAVE</th><th>STATUS</th></tr></thead>
+                <tbody id="tabela-corpo"></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="overlay" onclick="fecharModal()"></div>
     <div id="modal">
-        <h3 id="m-chave" style="color:#007bff; margin:0;">---</h3>
-        <p style="font-size:12px; color:#888;">HWID: <span id="m-hwid">---</span></p>
-        <p style="font-size:12px;">Expira em: <span id="m-expira">---</span></p>
-        
-        <button class="btn" style="background:#007bff; color:white;" onclick="alterarTempo(720)">+ 30 DIAS</button>
-        <button class="btn" style="background:#ffcc33; color:black;" onclick="resetarHWID()">RESETAR DISPOSITIVO</button>
-        <button class="btn" style="background:#ff4444; color:white;" onclick="cancelarChave()">EXCLUIR CHAVE</button>
-        
-        <div class="log-box" id="m-log">Aguardando log...</div>
-        <button class="btn" style="background:#444; color:white; margin-top:15px;" onclick="fecharModal()">FECHAR</button>
+        <h3 id="m-chave" style="color:var(--primary); margin:0 0 15px 0;">---</h3>
+        <p style="font-size:12px;"><b>📱 HWID:</b> <span id="m-hwid" style="color:#888;">---</span></p>
+        <p style="font-size:12px;"><b>⏳ Expira:</b> <span id="m-expira" style="color:#888;">---</span></p>
+        <button class="btn" style="background:var(--primary)" onclick="alterarTempo()">ADD +30 DIAS</button>
+        <button class="btn" style="background:var(--warning); color:#000;" onclick="resetarHWID()">RESETAR HWID</button>
+        <button class="btn" style="background:var(--danger)" onclick="cancelarChave()">EXCLUIR CHAVE</button>
+        <button class="btn" style="background:#444" onclick="fecharModal()">FECHAR</button>
     </div>
 
     <script>
@@ -82,6 +97,9 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
+        
+        let dadosCompletos = {};
+        let filtroAtual = 'todos';
         let chaveAtual = "";
 
         function fazerLogin() {
@@ -100,38 +118,53 @@
 
         function carregarDados() {
             db.ref("keys").on("value", (snap) => {
-                const data = snap.val();
-                let t = 0, a = 0, p = 0, html = "";
-                for (let id in data) {
-                    t++;
-                    let item = data[id];
-                    let ativa = (item.hwid && item.hwid !== "");
-                    if(ativa) a++; else p++;
-                    
+                dadosCompletos = snap.val();
+                renderizarTabela();
+            });
+        }
+
+        function setFiltro(tipo) {
+            filtroAtual = tipo;
+            document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('f-' + (tipo === 'todos' ? 'all' : tipo === 'ativas' ? 'active' : 'pending')).classList.add('active');
+            renderizarTabela();
+        }
+
+        function renderizarTabela() {
+            const busca = document.getElementById('searchInput').value.toLowerCase();
+            let t = 0, a = 0, p = 0, html = "";
+
+            for (let id in dadosCompletos) {
+                let item = dadosCompletos[id];
+                let ativa = (item.hwid && item.hwid !== "" && item.hwid !== "Livre");
+                
+                // Contadores globais
+                t++; if(ativa) a++; else p++;
+
+                // Lógica de Filtro
+                let matchesFiltro = (filtroAtual === 'todos') || (filtroAtual === 'ativas' && ativa) || (filtroAtual === 'pendentes' && !ativa);
+                let matchesBusca = id.toLowerCase().includes(busca) || (item.hwid && item.hwid.toLowerCase().includes(busca));
+
+                if (matchesFiltro && matchesBusca) {
                     html += `<tr onclick="abrirModal('${id}', '${item.hwid || 'Livre'}', '${item.expira || '24h'}')">
                         <td><b>${id}</b></td>
                         <td style="color:${ativa?'#00ff88':'#ffcc33'}">${ativa?'ATIVA':'PEND'}</td>
-                        <td>${item.expira || '---'}</td>
                     </tr>`;
                 }
-                document.getElementById("tabela-corpo").innerHTML = html;
-                document.getElementById("total").innerText = t;
-                document.getElementById("ativas").innerText = a;
-                document.getElementById("pendentes").innerText = p;
-            });
+            }
+            document.getElementById("tabela-corpo").innerHTML = html;
+            document.getElementById("total").innerText = t;
+            document.getElementById("ativas").innerText = a;
+            document.getElementById("pendentes").innerText = p;
         }
+
+        function filtrarTabela() { renderizarTabela(); }
 
         function abrirModal(id, hwid, exp) {
             chaveAtual = id;
             document.getElementById("m-chave").innerText = id;
             document.getElementById("m-hwid").innerText = hwid;
             document.getElementById("m-expira").innerText = exp;
-            
-            // Busca log na pasta 'registros'
-            db.ref("registros/" + id).once("value", s => {
-                document.getElementById("m-log").innerText = s.val() || "Sem histórico de login.";
-            });
-
             document.getElementById("modal").style.display = "block";
             document.getElementById("overlay").style.display = "block";
         }
@@ -139,16 +172,14 @@
         function fecharModal() { document.getElementById("modal").style.display = "none"; document.getElementById("overlay").style.display = "none"; }
 
         function resetarHWID() {
-            db.ref("keys/" + chaveAtual + "/hwid").set("").then(() => { alert("Dispositivo liberado!"); fecharModal(); });
+            db.ref("keys/" + chaveAtual + "/hwid").set("").then(() => { alert("HWID Resetado!"); fecharModal(); });
         }
 
         function cancelarChave() {
-            if(confirm("Excluir definitivamente?")) {
-                db.ref("keys/" + chaveAtual).remove().then(() => fecharModal());
-            }
+            if(confirm("Excluir definitivamente?")) { db.ref("keys/" + chaveAtual).remove().then(() => fecharModal()); }
         }
 
-        function alterarTempo(h) {
+        function alterarTempo() {
             db.ref("keys/" + chaveAtual + "/expira").set("30 Dias").then(() => { alert("Tempo Alterado!"); fecharModal(); });
         }
 
