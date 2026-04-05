@@ -3,43 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Elite v7 - Multi-Delete</title>
+    <title>Painel Ultimate - Cheto Master</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --yellow: #d29922; --red: #da3633; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 10px; }
         .hidden { display: none !important; }
         
-        /* Dashboard */
+        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 8px; text-align: center; }
         .stat-card p { margin: 5px 0 0 0; font-size: 18px; font-weight: bold; }
 
+        /* Filtros e Busca */
+        .control-panel { background: var(--card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
+        input, select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; }
+        
+        .filter-group { display: flex; gap: 5px; margin: 10px 0; overflow-x: auto; padding-bottom: 5px; }
+        .f-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #8b949e; cursor: pointer; font-size: 11px; white-space: nowrap; }
+        .f-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
         /* Ações em Massa */
-        #bulk-actions { display: flex; align-items: center; justify-content: space-between; background: var(--blue); color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        #bulk-bar { display: flex; align-items: center; justify-content: space-between; background: var(--blue); color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; }
 
         /* Tabela */
         .table-res { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 750px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: bold; text-transform: uppercase; }
-
-        /* Checkbox Estilizada */
         input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue); }
 
         /* Modal */
         #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 99; backdrop-filter: blur(3px); }
         #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 90%; max-width: 420px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; }
-        input[type="text"], select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 5px; width: 100%; }
         .btn-action { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" style="max-width:320px; margin: 100px auto; text-align: center;">
+    <div id="login-screen" style="max-width:320px; margin: 80px auto; text-align: center;">
         <h2 style="color: var(--blue);">Cheto Master Login</h2>
         <input type="email" id="email" placeholder="E-mail" style="margin-bottom:10px;">
         <input type="password" id="pass" placeholder="Senha" style="margin-bottom:10px;">
@@ -48,7 +53,7 @@
 
     <div id="main-content" class="hidden">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <span id="user-welcome" style="font-size: 11px; color: var(--blue);">Vendedor: ...</span>
+            <span id="user-welcome" style="font-size: 11px; color: var(--blue);">Aguardando...</span>
             <button onclick="auth.signOut().then(()=>location.reload())" style="background:none; border:none; color:var(--red); font-size:10px; cursor:pointer;">[ Sair ]</button>
         </div>
 
@@ -59,19 +64,29 @@
             <div class="stat-card"><h4>Expiradas</h4><p id="expiradas" style="color: var(--red)">0</p></div>
         </div>
 
-        <div id="bulk-actions" class="hidden">
-            <span id="selected-count">0 chaves selecionadas</span>
-            <button onclick="deleteSelected()" style="background: white; color: var(--red); border: none; padding: 5px 12px; border-radius: 5px; font-weight: bold; cursor: pointer;">🗑️ APAGAR SELECIONADAS</button>
+        <div id="bulk-bar" class="hidden">
+            <span id="bulk-text">0 selecionadas</span>
+            <button onclick="deleteSelected()" style="background: white; color: var(--red); border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer;">🗑️ APAGAR SELECIONADAS</button>
         </div>
 
-        <div style="background: var(--card); padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px;">
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <input type="text" id="searchInput" placeholder="Busca rápida..." onkeyup="renderizarTabela()">
-                <button onclick="gerarChaveComTempo()" style="background:var(--green); border:none; color:white; padding:0 15px; border-radius:5px; font-weight:bold; cursor:pointer;">+ GERAR</button>
+        <div class="control-panel">
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="text" id="searchInput" placeholder="Buscar chave ou usuário..." onkeyup="renderizarTabela()">
+                <button onclick="gerarChaveComTempo()" style="background:var(--green); border:none; color:white; padding:0 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ GERAR</button>
             </div>
-            <select id="sellerFilter" onchange="renderizarTabela()" class="hidden" style="margin-bottom: 5px;">
-                <option value="todos">Todos os Vendedores</option>
-            </select>
+
+            <div class="filter-group">
+                <button class="f-btn active" id="f-todos" onclick="setFiltroStatus('todos')">TODAS</button>
+                <button class="f-btn" id="f-ativas" onclick="setFiltroStatus('ativas')">ATIVAS</button>
+                <button class="f-btn" id="f-pendentes" onclick="setFiltroStatus('pendentes')">PENDENTES</button>
+                <button class="f-btn" id="f-expiradas" onclick="setFiltroStatus('expiradas')">EXPIRADAS</button>
+            </div>
+
+            <div id="admin-seller-area" class="hidden">
+                <select id="sellerFilter" onchange="renderizarTabela()">
+                    <option value="todos">Todos os Vendedores</option>
+                </select>
+            </div>
         </div>
 
         <div class="table-res">
@@ -89,8 +104,8 @@
 
     <div id="overlay" onclick="fecharModal()"></div>
     <div id="modal">
-        <h3 id="m-key" style="color: var(--blue); margin: 0 0 15px 0;">---</h3>
-        <input type="text" id="new-user" placeholder="Nome do Dono">
+        <h3 id="m-key" style="color: var(--blue); margin: 0 0 15px 0;">CHAVE</h3>
+        <input type="text" id="new-user" placeholder="Dono da Chave">
         <div style="display: flex; gap: 5px; margin: 10px 0;">
             <input type="number" id="ext-val" value="1">
             <select id="ext-unit">
@@ -99,7 +114,7 @@
         </div>
         <button class="btn-action" style="background: var(--green); color: white;" onclick="salvarAlteracoes()">SALVAR</button>
         <button class="btn-action" style="background: var(--yellow); color: #000;" onclick="resetarHwid()">RESETAR HWID</button>
-        <button class="btn-action" style="background: var(--red); color: white;" onclick="excluirChave()">EXCLUIR ESTA CHAVE</button>
+        <button class="btn-action" id="btn-del-single" style="background: var(--red); color: white;" onclick="excluirChave()">EXCLUIR CHAVE</button>
     </div>
 
     <script>
@@ -120,12 +135,13 @@
 
         let dadosLocais = {};
         let selectedKeys = new Set();
+        let filtroStatus = 'todos';
         let chaveAberta = "";
 
         function fazerLogin() {
             const e = document.getElementById('email').value;
             const p = document.getElementById('pass').value;
-            auth.signInWithEmailAndPassword(e, p).catch(() => alert("Erro no Login"));
+            auth.signInWithEmailAndPassword(e, p).catch(() => alert("Login falhou"));
         }
 
         auth.onAuthStateChanged(user => {
@@ -133,7 +149,7 @@
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('user-welcome').innerText = "Logado: " + user.email;
-                if(user.email === ADMIN_EMAIL) document.getElementById('sellerFilter').classList.remove('hidden');
+                if(user.email === ADMIN_EMAIL) document.getElementById('admin-seller-area').classList.remove('hidden');
                 carregarDados();
             }
         });
@@ -145,12 +161,20 @@
             });
         }
 
+        function setFiltroStatus(s) {
+            filtroStatus = s;
+            document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('f-' + s).classList.add('active');
+            renderizarTabela();
+        }
+
         function renderizarTabela() {
             const userLogado = auth.currentUser.email;
             const isAdmin = (userLogado === ADMIN_EMAIL);
             const busca = document.getElementById('searchInput').value.toLowerCase();
             const filtroVendedor = document.getElementById('sellerFilter').value;
             const agora = Date.now();
+            
             let t=0, a=0, e=0, p=0, html="";
             let vendedores = new Set();
 
@@ -161,98 +185,91 @@
                 let vend = item.vendedor || "Sistema";
                 if(item.vendedor) vendedores.add(item.vendedor);
 
-                if (!isAdmin && vend !== userLogado) continue;
-                if (isAdmin && filtroVendedor !== "todos" && vend !== filtroVendedor) continue;
-
+                // Lógica de Status
                 let t_exp = item.timestamp_exp || 0;
                 let expirada = (t_exp > 0 && agora > t_exp);
                 let ativa = (item.usuario || item.hwid) && !expirada;
                 let pendente = (!ativa && !expirada);
 
+                // Filtros Cruzados
+                if (!isAdmin && vend !== userLogado) continue;
+                if (isAdmin && filtroVendedor !== "todos" && vend !== filtroVendedor) continue;
+                if (filtroStatus === 'ativas' && !ativa) continue;
+                if (filtroStatus === 'pendentes' && !pendente) continue;
+                if (filtroStatus === 'expiradas' && !expirada) continue;
+                if (busca && !id.toLowerCase().includes(busca) && !(item.usuario && item.usuario.toLowerCase().includes(busca))) continue;
+
                 if(expirada) e++; else if(ativa) a++; else p++;
                 t++;
 
-                if (busca && !id.toLowerCase().includes(busca) && !(item.usuario && item.usuario.toLowerCase().includes(busca))) continue;
-
                 html += `<tr>
-                    <td><input type="checkbox" class="key-checkbox" value="${id}" ${selectedKeys.has(id)?'checked':''} onclick="updateSelection()"></td>
+                    <td><input type="checkbox" class="key-cb" value="${id}" ${selectedKeys.has(id)?'checked':''} onclick="updateBulk()"></td>
                     <td><b>${id}</b></td>
                     <td style="color:var(--blue)">${item.usuario || '---'}</td>
                     <td><span class="status-badge" style="background:${expirada?'var(--red)':ativa?'var(--green)':'var(--yellow)'}">${expirada?'Exp':ativa?'Ativa':'Pend'}</span></td>
-                    <td style="color:#8b949e; font-size:10px;">${item.expira || 'N/A'}</td>
+                    <td style="color:#8b949e; font-size:9px;">${item.expira || 'N/A'}</td>
                     <td><button onclick="abrirModal('${id}')" style="background:#333; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">⚙️</button></td>
                 </tr>`;
             }
 
             if(isAdmin) {
-                const select = document.getElementById('sellerFilter');
-                const atual = select.value;
-                select.innerHTML = '<option value="todos">Todos os Vendedores</option>';
-                vendedores.forEach(v => select.innerHTML += `<option value="${v}" ${atual===v?'selected':''}>${v}</option>`);
+                const sel = document.getElementById('sellerFilter');
+                const val = sel.value;
+                sel.innerHTML = '<option value="todos">Todos os Vendedores</option>';
+                vendedores.forEach(v => sel.innerHTML += `<option value="${v}" ${val===v?'selected':''}>${v}</option>`);
             }
 
             document.getElementById("total").innerText = t; document.getElementById("ativas").innerText = a;
             document.getElementById("expiradas").innerText = e; document.getElementById("pendentes").innerText = p;
             document.getElementById("tabela-corpo").innerHTML = html;
-            updateSelection();
+            updateBulk();
         }
 
-        // SELEÇÃO MÚLTIPLA
+        // MULTI-DELETE LOGIC
         function toggleAll() {
             const master = document.getElementById('selectAll');
-            const checks = document.querySelectorAll('.key-checkbox');
-            checks.forEach(c => {
+            document.querySelectorAll('.key-cb').forEach(c => {
                 c.checked = master.checked;
-                if(c.checked) selectedKeys.add(c.value);
-                else selectedKeys.delete(c.value);
+                if(master.checked) selectedKeys.add(c.value); else selectedKeys.delete(c.value);
             });
-            updateSelection();
+            updateBulk();
         }
 
-        function updateSelection() {
-            const checks = document.querySelectorAll('.key-checkbox:checked');
-            const bulkBar = document.getElementById('bulk-actions');
+        function updateBulk() {
+            const checks = document.querySelectorAll('.key-cb:checked');
             selectedKeys.clear();
             checks.forEach(c => selectedKeys.add(c.value));
-            
+            const bar = document.getElementById('bulk-bar');
             if(selectedKeys.size > 0) {
-                bulkBar.classList.remove('hidden');
-                document.getElementById('selected-count').innerText = selectedKeys.size + " chaves selecionadas";
-            } else {
-                bulkBar.classList.add('hidden');
-            }
+                bar.classList.remove('hidden');
+                document.getElementById('bulk-text').innerText = selectedKeys.size + " selecionadas";
+            } else { bar.classList.add('hidden'); }
         }
 
         async function deleteSelected() {
-            if(confirm("Deseja APAGAR as " + selectedKeys.size + " chaves selecionadas?")) {
-                for (let id of selectedKeys) {
-                    await db.ref("keys/" + id).remove();
-                }
+            if(confirm("Apagar " + selectedKeys.size + " chaves?")) {
+                for (let id of selectedKeys) await db.ref("keys/" + id).remove();
                 selectedKeys.clear();
-                alert("Chaves apagadas!");
+                alert("Limpeza concluída!");
             }
         }
 
-        // FUNÇÕES PADRÃO
+        // MODAL E GERAÇÃO
         function gerarChaveComTempo() {
-            const tempo = prompt("Validade (ex: 24 horas, 30 dias):");
-            if (!tempo) return;
+            const t = prompt("Tempo (ex: 24 horas, 30 dias):");
+            if (!t) return;
             const k = "CHETO-" + Math.random().toString(36).substring(2, 9).toUpperCase();
             let ms = 86400000;
-            if(tempo.includes("hora")) ms = parseInt(tempo) * 3600000;
-            else if(tempo.includes("dia")) ms = parseInt(tempo) * 86400000;
+            if(t.includes("hora")) ms = parseInt(t) * 3600000; else if(t.includes("dia")) ms = parseInt(t) * 86400000;
             const exp = Date.now() + ms;
-            db.ref("keys/" + k).set({
-                vendedor: auth.currentUser.email,
-                usuario: "", hwid: "", timestamp_exp: exp,
-                expira: new Date(exp).toLocaleString('pt-BR'), criada_em: Date.now()
-            });
+            db.ref("keys/" + k).set({ vendedor: auth.currentUser.email, usuario: "", hwid: "", timestamp_exp: exp, expira: new Date(exp).toLocaleString('pt-BR'), criada_em: Date.now() });
         }
 
         function abrirModal(id) {
             chaveAberta = id;
             document.getElementById("m-key").innerText = id;
             document.getElementById("new-user").value = dadosLocais[id].usuario || "";
+            document.getElementById("btn-del-single").style.display = (auth.currentUser.email === ADMIN_EMAIL || dadosLocais[id].vendedor === auth.currentUser.email) ? "block" : "none";
             document.getElementById("modal").style.display = "block";
             document.getElementById("overlay").style.display = "block";
         }
@@ -262,10 +279,7 @@
             const unit = document.getElementById("ext-unit").value;
             let addMs = (unit === 'min') ? val * 60000 : (unit === 'hor') ? val * 3600000 : val * 86400000;
             const novaExp = (dadosLocais[chaveAberta].timestamp_exp || Date.now()) + addMs;
-            db.ref("keys/" + chaveAberta).update({
-                usuario: document.getElementById("new-user").value,
-                timestamp_exp: novaExp, expira: new Date(novaExp).toLocaleString('pt-BR')
-            }).then(() => fecharModal());
+            db.ref("keys/" + chaveAberta).update({ usuario: document.getElementById("new-user").value, timestamp_exp: novaExp, expira: new Date(novaExp).toLocaleString('pt-BR') }).then(() => fecharModal());
         }
         function resetarHwid() { db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Resetado!")); }
         function excluirChave() { if(confirm("Apagar?")) db.ref("keys/" + chaveAberta).remove().then(() => fecharModal()); }
