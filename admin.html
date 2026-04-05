@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Master - Cheto Pro</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        body { background: #0a0a0e; color: #fff; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .hidden { display: none !important; }
+        #login-screen { background: #16161d; padding: 30px; border-radius: 15px; border: 1px solid #333; width: 90%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #main-content { width: 95%; max-width: 1200px; padding: 20px; align-self: flex-start; display: none; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .card { background: #16161d; padding: 15px; border-radius: 10px; border: 1px solid #2d2d35; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: #16161d; margin-top: 20px; font-size: 13px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2d2d35; }
+        .badge-active { color: #00ff88; font-weight: bold; }
+        .badge-pending { color: #ffcc33; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <h2>Admin Login</h2>
+        <input type="email" id="email" placeholder="E-mail">
+        <input type="password" id="pass" placeholder="Senha">
+        <button class="btn" style="background:#007bff; color:white;" onclick="fazerLogin()">ENTRAR</button>
+    </div>
+
+    <div id="main-content">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>CHETO MASTER</h1>
+            <button onclick="gerarChave()" style="background:#28a745; color:white; padding:10px; border:none; border-radius:5px;">+ NOVA CHAVE</button>
+        </div>
+        <div class="grid">
+            <div class="card"><h3>Total</h3><p id="total">0</p></div>
+            <div class="card"><h3>Ativas</h3><p id="ativas">0</p></div>
+            <div class="card"><h3>Pendentes</h3><p id="pendentes">0</p></div>
+        </div>
+        <table>
+            <thead><tr><th>CHAVE</th><th>STATUS</th><th>HWID</th><th>EXPIRA</th></tr></thead>
+            <tbody id="tabela-corpo"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAHTGthgkjp4Inqf6p2EpNYZ5pV1iOc6wQ",
+          authDomain: "poolvipseguro.firebaseapp.com",
+          databaseURL: "https://poolvipseguro-default-rtdb.firebaseio.com",
+          projectId: "poolvipseguro",
+          storageBucket: "poolvipseguro.firebasestorage.app",
+          messagingSenderId: "628193855101",
+          appId: "1:628193855101:web:6e51e13dc44fdc00a01314"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // 1. FORÇAR PERSISTÊNCIA LOCAL
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+        function fazerLogin() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => { 
+                    alert("Login OK! Carregando painel..."); 
+                    mostrarDashboard(); 
+                })
+                .catch(e => alert("ERRO: " + e.message));
+        }
+
+        function mostrarDashboard() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            carregarDados();
+        }
+
+        // 2. DETECTAR LOGIN AUTOMÁTICO
+        auth.onAuthStateChanged(user => {
+            if (user) { mostrarDashboard(); }
+        });
+
+        function carregarDados() {
+            console.log("Iniciando leitura do banco...");
+            db.ref("keys").on("value", (snapshot) => {
+                const keys = snapshot.val();
+                if(!keys) { alert("Banco vazio ou sem permissão de leitura!"); return; }
+                
+                let total = 0, ativas = 0, pendentes = 0, html = "";
+                for (let id in keys) {
+                    total++;
+                    let item = keys[id];
+                    let hwid = item.hwid || "";
+                    let isAtiva = (hwid !== "" && hwid !== "Livre");
+                    if(isAtiva) ativas++; else pendentes++;
+
+                    html += `<tr>
+                        <td>${id}</td>
+                        <td class="${isAtiva?'badge-active':'badge-pending'}">${isAtiva?'ATIVA':'PENDENTE'}</td>
+                        <td>${hwid || '---'}</td>
+                        <td>${item.expira || '24h'}</td>
+                    </tr>`;
+                }
+                document.getElementById("tabela-corpo").innerHTML = html;
+                document.getElementById("total").innerText = total;
+                document.getElementById("ativas").innerText = ativas;
+                document.getElementById("pendentes").innerText = pendentes;
+            }, (error) => {
+                alert("ERRO DE PERMISSÃO: " + error.message);
+            });
+        }
+
+        function gerarChave() {
+            const key = "CHETO-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            db.ref("keys/" + key).set({ hwid: "", status: "Pendente", expira: "Aguardando" })
+              .then(() => alert("Gerada: " + key))
+              .catch(e => alert("Erro ao salvar: " + e.message));
+        }
+    </script>
+</body>
+</html>
