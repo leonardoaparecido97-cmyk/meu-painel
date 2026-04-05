@@ -3,37 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Master - Cheto Pro</title>
+    <title>Cheto Master - Gestão Avançada</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        body { background: #0a0a0e; color: #fff; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .hidden { display: none !important; }
-        #login-screen { background: #16161d; padding: 30px; border-radius: 15px; border: 1px solid #333; width: 90%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #main-content { width: 95%; max-width: 1200px; padding: 20px; align-self: flex-start; display: none; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
-        .card { background: #16161d; padding: 15px; border-radius: 10px; border: 1px solid #2d2d35; text-align: center; }
-        table { width: 100%; border-collapse: collapse; background: #16161d; margin-top: 20px; font-size: 13px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2d2d35; }
-        .badge-active { color: #00ff88; font-weight: bold; }
-        .badge-pending { color: #ffcc33; font-weight: bold; }
+        body { background: #0a0a0e; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
+        .card { background: #16161d; padding: 20px; border-radius: 12px; border: 1px solid #2d2d35; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #16161d; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2d2d35; cursor: pointer; }
+        tr:hover { background: #1f1f27; }
+        .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 2px; }
+        
+        /* Modal de Detalhes */
+        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c24; padding: 30px; border-radius: 15px; border: 2px solid #007bff; width: 90%; max-width: 500px; z-index: 1000; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
+        .log-box { background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; margin-top: 10px; color: #00ff88; max-height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h2>Admin Login</h2>
-        <input type="email" id="email" placeholder="E-mail">
-        <input type="password" id="pass" placeholder="Senha">
-        <button class="btn" style="background:#007bff; color:white;" onclick="fazerLogin()">ENTRAR</button>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>CHETO MASTER <small style="font-size: 12px; color: #555;">PRO</small></h1>
+        <button class="btn" style="background:#28a745; color:white;" onclick="gerarChave()">+ NOVA CHAVE</button>
     </div>
 
-    <div id="main-content">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>CHETO MASTER</h1>
+    <div class="grid">
+        <div class="card"><h3>Total</h3><p id="total">0</p></div>
+        <div class="card"><h3>Ativas</h3><p id="ativas" style="color:#00ff88;">0</p></div>
+        <div class="card"><h3>Pendentes</h3><p id="pendentes" style="color:#ffcc33;">0</p></div>
+    </div>
+
+    <table>
+        <thead><tr><th>CHAVE</th><th>STATUS</th><th>VENCIMENTO</th></tr></thead>
+        <tbody id="tabela-corpo"></tbody>
+    </table>
+
+    <div id="overlay" onclick="fecharModal()"></div>
+    <div id="modal">
+        <h2 id="m-chave" style="color:#007bff; margin-top:0;">CHAVE</h2>
+        <hr style="border:0; border-top:1px solid #333;">
+        <p><strong>Status:</strong> <span id="m-status">---</span></p>
+        <p><strong>HWID:</strong> <span id="m-hwid" style="font-size:11px; color:#888;">---</span></p>
+        <p><strong>Expira:</strong> <span id="m-expira">---</span></p>
+        
+        <div style="margin-top:20px;">
+            <button class="btn" style="background:#007bff; color:white;" onclick="alterarTempo(24)">+24 Horas</button>
+            <button class="btn" style="background:#007bff; color:white;" onclick="alterarTempo(720)">+30 Dias</button>
+            <button class="btn" style="background:#ffcc33; color:black;" onclick="resetarHWID()">Resetar HWID</button>
+            <button class="btn" style="background:#ff4444; color:white;" onclick="cancelarChave()">CANCELAR CHAVE</button>
+        </div>
+
+        <p style="margin-top:20px; font-size:12px; color:#888;">ÚLTIMO REGISTRO (LOG):</p>
+        <div id="m-log" class="log-box">Nenhum login registrado.</div>
+        <br>
+        <button class="btn" style="width:100%; background:#444; color:white;" onclick="fecharModal()">FECHAR</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAHTGthgkjp4Inqf6p2EpNYZ5pV1iOc6wQ",
+          authDomain: "poolvipseguro.firebaseapp.com",
+          databaseURL: "https://poolvipseguro-default-rtdb.firebaseio.com",
+          projectId: "poolvipseguro",
+          storageBucket: "poolvipseguro.firebasestorage.app",
+          messagingSenderId: "628193855101",
+          appId: "1:628193855101:web:6e51e13dc44fdc00a01314"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let chaveSelecionada = "";
+
+        // CARREGA LISTA
+        db.ref("keys").on("value", (snapshot) => {
+            const keys = snapshot.val();
+            let total = 0, ativas = 0, pendentes = 0, html = "";
+            for (let id in keys) {
+                total++;
+                let item = keys[id];
+                let isAtiva = (item.hwid && item.hwid !== "");
+                if(isAtiva) ativas++; else pendentes++;
+                
+                html += `<tr onclick="abrirModal('${id}', '${isAtiva ? 'ATIVA' : 'PENDENTE'}', '${item.hwid || 'Livre'}', '${item.expira || '24h'}')">
+                    <td><strong>${id}</strong></td>
+                    <td style="color:${isAtiva?'#00ff88':'#ffcc33'}">${isAtiva?'ATIVA':'PENDENTE'}</td>
+                    <td>${item.expira || '---'}</td>
+                </tr>`;
+            }
+            document.getElementById("tabela-corpo").innerHTML = html;
+            document.getElementById("total").innerText = total;
+            document.getElementById("ativas").innerText = ativas;
+            document.getElementById("pendentes").innerText = pendentes;
+        });
+
+        // FUNÇÕES DO MODAL
+        function abrirModal(id, status, hwid, expira) {
+            chaveSelecionada = id;
+            document.getElementById("m-chave").innerText = id;
+            document.getElementById("m-status").innerText = status;
+            document.getElementById("m-hwid").innerText = hwid;
+            document.getElementById("m-expira").innerText = expira;
+            
+            // Busca o Log de Conexão na pasta 'registros'
+            db.ref("registros/" + id).once("value", (snap) => {
+                document.getElementById("m-log").innerText = snap.val() || "Sem registros de conexão recente.";
+            });
+
+            document.getElementById("modal").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function fecharModal() {
+            document.getElementById("modal").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+        }
+
+        function resetarHWID() {
+            db.ref("keys/" + chaveSelecionada + "/hwid").set("").then(() => {
+                alert("HWID Resetado! O cliente pode logar em outro celular.");
+                fecharModal();
+            });
+        }
+
+        function cancelarChave() {
+            if(confirm("Deseja realmente EXCLUIR esta chave?")) {
+                db.ref("keys/" + chaveSelecionada).remove().then(() => {
+                    alert("Chave cancelada com sucesso.");
+                    fecharModal();
+                });
+            }
+        }
+
+        function alterarTempo(horas) {
+            // Lógica simples: atualiza o texto de expira (pode ser melhorado para timestamp)
+            let novaData = "Adicionado " + horas + "h em " + new Date().toLocaleDateString();
+            db.ref("keys/" + chaveSelecionada + "/expira").set(novaData).then(() => {
+                alert("Tempo atualizado!");
+                fecharModal();
+            });
+        }
+
+        function gerarChave() {
+            const k = "CHETO-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+            db.ref("keys/" + k).set({ hwid: "", status: "Pendente", expira: "24h" });
+        }
+    </script>
+</body>
+</html>
             <button onclick="gerarChave()" style="background:#28a745; color:white; padding:10px; border:none; border-radius:5px;">+ NOVA CHAVE</button>
         </div>
         <div class="grid">
