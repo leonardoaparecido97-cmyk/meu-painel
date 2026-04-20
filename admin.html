@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Gestão Elite v8 - Protegido</title>
+    <title>Painel Gestão Elite v8 - Bloqueio Vendedor</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -12,14 +12,17 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 10px; }
         .hidden { display: none !important; }
         
+        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 8px; text-align: center; }
         .stat-card h4 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
         .stat-card p { margin: 5px 0 0 0; font-size: 18px; font-weight: bold; }
 
+        /* Multi-Delete Bar */
         #bulk-bar { display: flex; align-items: center; justify-content: space-between; background: var(--blue); color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; }
 
+        /* Controls */
         .control-panel { background: var(--card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
         input, select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; margin-bottom: 5px; }
         
@@ -27,12 +30,14 @@
         .f-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #8b949e; cursor: pointer; font-size: 11px; white-space: nowrap; }
         .f-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
 
+        /* Table */
         .table-res { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 750px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: bold; text-transform: uppercase; }
         input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue); }
 
+        /* Modal */
         #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 99; backdrop-filter: blur(3px); }
         #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 92%; max-width: 450px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; max-height: 90vh; overflow-y: auto; }
         .row-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; border-bottom: 1px solid #21262d; padding-bottom: 4px; }
@@ -64,7 +69,7 @@
 
         <div id="bulk-bar" class="hidden">
             <span id="bulk-text">0 selecionadas</span>
-            <button id="btn-bulk-del" onclick="deleteSelected()" style="background: white; color: var(--red); border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer;">🗑️ APAGAR SELECIONADAS</button>
+            <button onclick="deleteSelected()" style="background: white; color: var(--red); border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer;">🗑️ APAGAR SELECIONADAS</button>
         </div>
 
         <div class="control-panel">
@@ -145,6 +150,8 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
+        
+        // APENAS ESTE E-MAIL CONSEGUE APAGAR
         const ADMIN_EMAIL = "suno69644@gmail.com"; 
 
         let dadosLocais = {};
@@ -247,25 +254,21 @@
 
         function updateBulk() {
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
-            const bar = document.getElementById('bulk-bar');
-            
-            // Só atualiza os sets se os checkboxes existirem
             const checks = document.querySelectorAll('.key-cb:checked');
             selectedKeys.clear();
             checks.forEach(c => selectedKeys.add(c.value));
-
-            // Só mostra a barra se houver seleção E for ADM
+            const bar = document.getElementById('bulk-bar');
+            
+            // SÓ MOSTRA BARRA DE APAGAR EM MASSA SE FOR ADMIN
             if(selectedKeys.size > 0 && isAdmin) {
                 bar.classList.remove('hidden');
                 document.getElementById('bulk-text').innerText = selectedKeys.size + " selecionadas";
-            } else { 
-                bar.classList.add('hidden'); 
-            }
+            } else { bar.classList.add('hidden'); }
         }
 
         async function deleteSelected() {
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
-            if(!isAdmin) return alert("Apenas administradores podem apagar dados.");
+            if(!isAdmin) { alert("ERRO: Vendedores não podem apagar chaves."); return; }
 
             if(confirm("Apagar " + selectedKeys.size + " chaves?")) {
                 for (let id of selectedKeys) await db.ref("keys/" + id).remove();
@@ -289,9 +292,9 @@
                 document.getElementById("m-log").innerText = s.val() || "Sem histórico de conexão.";
             });
 
-            // Restrição visual: apenas o e-mail Admin vê o botão de excluir
-            document.getElementById("btn-del-single").style.display = (isAdmin) ? "block" : "none";
-            
+            // LOGICA REFORÇADA: Só exibe botão de excluir se o logado for exatamente o ADMIN_EMAIL
+            document.getElementById("btn-del-single").style.display = isAdmin ? "block" : "none";
+
             document.getElementById("modal").style.display = "block";
             document.getElementById("overlay").style.display = "block";
         }
@@ -314,14 +317,9 @@
         
         function excluirChave() { 
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
-            if(!isAdmin) return alert("Ação negada. Apenas administradores podem apagar chaves.");
+            if(!isAdmin) { alert("Ação negada. Chame o administrador."); return; }
 
-            if(confirm("Deseja realmente apagar esta chave permanentemente?")) {
-                db.ref("keys/" + chaveAberta).remove().then(() => {
-                    alert("Chave excluída!");
-                    fecharModal();
-                });
-            }
+            if(confirm("Apagar permanentemente?")) db.ref("keys/" + chaveAberta).remove().then(() => fecharModal()); 
         }
 
         function gerarChaveComTempo() {
