@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Gestão Elite v8 - Bloqueio Vendedor</title>
+    <title>Painel Gestão Elite v8 - Multi-Voucher</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -12,17 +12,14 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 10px; }
         .hidden { display: none !important; }
         
-        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 8px; text-align: center; }
         .stat-card h4 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
         .stat-card p { margin: 5px 0 0 0; font-size: 18px; font-weight: bold; }
 
-        /* Multi-Delete Bar */
         #bulk-bar { display: flex; align-items: center; justify-content: space-between; background: var(--blue); color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; }
 
-        /* Controls */
         .control-panel { background: var(--card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
         input, select { background: #0d1117; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; margin-bottom: 5px; }
         
@@ -30,19 +27,18 @@
         .f-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #8b949e; cursor: pointer; font-size: 11px; white-space: nowrap; }
         .f-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Table */
         .table-res { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 750px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: bold; text-transform: uppercase; }
         input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue); }
 
-        /* Modal */
         #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 99; backdrop-filter: blur(3px); }
         #modal { display: none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: #161b22; width: 92%; max-width: 450px; border-radius: 12px; border: 1px solid var(--border); z-index: 100; padding: 20px; max-height: 90vh; overflow-y: auto; }
         .row-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; border-bottom: 1px solid #21262d; padding-bottom: 4px; }
         .btn-action { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; }
         .log-box { background: #000; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 10px; color: #00ff88; margin-top: 10px; max-height: 80px; overflow-y: auto; border: 1px solid #333; }
+        .hwid-list-box { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 10px; max-height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -97,7 +93,7 @@
                 <thead>
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll()"></th>
-                        <th>CHAVE</th><th>USUÁRIO</th><th>DISP.</th><th>STATUS</th><th>VENCIMENTO</th><th>AÇÃO</th>
+                        <th>CHAVE</th><th>USUÁRIO</th><th>DISP.</th><th>STATUS</th><th>DURAÇÃO BASE</th><th>AÇÃO</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo"></tbody>
@@ -110,10 +106,11 @@
         <h3 id="m-key" style="color: var(--blue); margin: 0 0 15px 0;">CHAVE</h3>
         <div class="row-info"><label>Vendedor:</label><span id="m-vendedor" style="color: var(--yellow)">---</span></div>
         <div class="row-info"><label>Status:</label><span id="m-status">---</span></div>
-        <div class="row-info"><label>Vencimento:</label><span id="m-exp-txt">---</span></div>
-        <div class="row-info" style="flex-direction: column;">
-            <label style="margin-bottom: 5px;">HWIDs Registrados:</label>
-            <span id="m-hwid" style="font-size:10px; color: #888; word-break: break-all;">---</span>
+        <div class="row-info"><label>Duração/Voucher:</label><span id="m-exp-txt">---</span></div>
+        
+        <div style="margin-top: 10px;">
+            <label style="font-size:11px; color:#8b949e;">Status dos Dispositivos Conectados:</label>
+            <div id="m-hwid-list" class="hwid-list-box">---</div>
         </div>
 
         <div style="margin-top:15px; border-top: 1px solid var(--border); padding-top: 10px;">
@@ -123,9 +120,9 @@
             <label style="font-size:11px; color:#8b949e;">Máximo de Dispositivos Permitidos:</label>
             <input type="number" id="m-max-disp" min="1" value="1">
             
-            <label style="font-size:11px; color:#8b949e;">Adicionar Tempo:</label>
+            <label style="font-size:11px; color:#8b949e;">Adicionar Tempo (Aplica a todos os aparelhos ativos):</label>
             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                <input type="number" id="ext-val" value="1">
+                <input type="number" id="ext-val" value="0">
                 <select id="ext-unit">
                     <option value="min">Minutos</option><option value="hor">Horas</option><option value="dia">Dias</option>
                 </select>
@@ -211,16 +208,44 @@
                 let vend = item.vendedor || "Sistema";
                 if(item.vendedor) vendedores.add(item.vendedor);
 
-                let t_exp = item.timestamp_exp || 0;
-                let expirada = (t_exp > 0 && agora > t_exp);
-                
-                // Lógica Multi-Dispositivos
                 let maxD = item.max_dispositivos || 1;
-                // Pega os HWIDs (compatível com chave antiga que usava só 'hwid' ou nova que usa 'hwids' como objeto)
-                let listaHwids = item.hwids ? Object.keys(item.hwids) : (item.hwid ? [item.hwid] : []);
-                let countD = listaHwids.length;
+                let listaHwids = [];
+                let dicionarioHwids = {};
 
-                let ativa = (item.usuario || countD > 0) && !expirada;
+                // Trata a estrutura (se é o formato novo que guarda o tempo de cada um, ou legado)
+                if (typeof item.hwids === 'object' && item.hwids !== null) {
+                    listaHwids = Object.keys(item.hwids);
+                    dicionarioHwids = item.hwids;
+                } else if (typeof item.hwid === 'string' && item.hwid !== "") {
+                    listaHwids = [item.hwid]; // Legado
+                    dicionarioHwids[item.hwid] = item.timestamp_exp || 0;
+                }
+
+                let countD = listaHwids.length;
+                let temAtiva = false;
+                let todasExpiradas = true;
+
+                // Verifica individualmente quem ta ativo ou expirado
+                if (countD > 0) {
+                    listaHwids.forEach(h => {
+                        let tempoExp = dicionarioHwids[h];
+                        if (tempoExp > agora) {
+                            temAtiva = true;
+                            todasExpiradas = false;
+                        }
+                    });
+                } else {
+                    // Ninguém conectou ainda
+                    todasExpiradas = false;
+                }
+
+                // Corrige caso seja uma chave legado que expirou antes de alguém conectar
+                if (item.timestamp_exp && countD === 0 && agora > item.timestamp_exp && !item.duracao_ms) {
+                    todasExpiradas = true;
+                }
+
+                let expirada = (todasExpiradas && countD > 0) || (item.timestamp_exp && countD === 0 && agora > item.timestamp_exp && !item.duracao_ms);
+                let ativa = temAtiva;
                 let pendente = (!ativa && !expirada);
 
                 if (!isAdmin && vend !== userLogado) continue;
@@ -233,13 +258,15 @@
                 if(expirada) e++; else if(ativa) a++; else p++;
                 t++;
 
+                let textoBase = item.duracao_texto ? `Abre com: ${item.duracao_texto}` : (item.expira || 'N/A');
+
                 html += `<tr>
                     <td><input type="checkbox" class="key-cb" value="${id}" ${selectedKeys.has(id)?'checked':''} onclick="updateBulk()"></td>
                     <td><b>${id}</b></td>
                     <td style="color:var(--blue)">${item.usuario || '---'}</td>
                     <td style="text-align:center;"><b>${countD}</b>/${maxD}</td>
                     <td><span class="status-badge" style="background:${expirada?'var(--red)':ativa?'var(--green)':'var(--yellow)'}">${expirada?'Exp':ativa?'Ativa':'Pend'}</span></td>
-                    <td style="color:#8b949e; font-size:10px;">${item.expira || 'N/A'}</td>
+                    <td style="color:#8b949e; font-size:10px;">${textoBase}</td>
                     <td><button onclick="abrirModal('${id}')" style="background:#333; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">⚙️</button></td>
                 </tr>`;
             }
@@ -273,7 +300,6 @@
             checks.forEach(c => selectedKeys.add(c.value));
             const bar = document.getElementById('bulk-bar');
             
-            // SÓ MOSTRA BARRA DE APAGAR EM MASSA SE FOR ADMIN
             if(selectedKeys.size > 0 && isAdmin) {
                 bar.classList.remove('hidden');
                 document.getElementById('bulk-text').innerText = selectedKeys.size + " selecionadas";
@@ -284,18 +310,47 @@
             chaveAberta = id;
             let item = dadosLocais[id];
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
+            const agora = Date.now();
             
             let maxD = item.max_dispositivos || 1;
-            let listaHwids = item.hwids ? Object.keys(item.hwids) : (item.hwid ? [item.hwid] : []);
+            let listaHwids = [];
+            let dicionarioHwids = {};
+
+            if (typeof item.hwids === 'object' && item.hwids !== null) {
+                listaHwids = Object.keys(item.hwids);
+                dicionarioHwids = item.hwids;
+            } else if (typeof item.hwid === 'string' && item.hwid !== "") {
+                listaHwids = [item.hwid]; 
+                dicionarioHwids[item.hwid] = item.timestamp_exp || 0;
+            }
+
+            // Renderiza a lista de dispositivos dentro do modal
+            let htmlDisp = "";
+            if(listaHwids.length > 0) {
+                listaHwids.forEach(h => {
+                    let tempoExp = dicionarioHwids[h];
+                    let dataExpTxt = new Date(tempoExp).toLocaleString('pt-BR');
+                    let statusColor = tempoExp > agora ? 'var(--green)' : 'var(--red)';
+                    let statusTxt = tempoExp > agora ? 'Ativo' : 'Expirou';
+                    
+                    htmlDisp += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #21262d; padding:4px 0;">
+                        <span style="font-size:10px; color:#aaa; max-width:50%; overflow:hidden; text-overflow:ellipsis;" title="${h}">${h}</span>
+                        <span style="font-size:10px;"><b style="color:${statusColor}">${statusTxt}</b> | ${dataExpTxt}</span>
+                    </div>`;
+                });
+            } else {
+                htmlDisp = "<span style='font-size:11px; color:#888;'>Aguardando a primeira conexão...</span>";
+            }
+            document.getElementById("m-hwid-list").innerHTML = htmlDisp;
 
             document.getElementById("m-key").innerText = id;
             document.getElementById("m-vendedor").innerText = item.vendedor || "Admin";
-            document.getElementById("m-status").innerText = (item.usuario || listaHwids.length > 0 ? "Ativa" : "Pendente");
-            document.getElementById("m-hwid").innerText = listaHwids.length > 0 ? listaHwids.join(" | ") : "Livre";
-            document.getElementById("m-exp-txt").innerText = item.expira || "N/A";
+            document.getElementById("m-status").innerText = listaHwids.length > 0 ? "Ativada em Dispositivos" : "Pendente/Livre";
+            document.getElementById("m-exp-txt").innerText = item.duracao_texto ? `Abre com carga de: ${item.duracao_texto}` : (item.expira || "N/A");
             
             document.getElementById("new-user").value = item.usuario || "";
             document.getElementById("m-max-disp").value = maxD;
+            document.getElementById("ext-val").value = "0"; // Reseta campo de adicao
             
             db.ref("registros/" + id).once("value", s => {
                 document.getElementById("m-log").innerText = s.val() || "Sem histórico de conexão.";
@@ -312,22 +367,39 @@
             const maxD = parseInt(document.getElementById("m-max-disp").value) || 1;
             const val = parseInt(document.getElementById("ext-val").value);
             const unit = document.getElementById("ext-unit").value;
+            let itemAtual = dadosLocais[chaveAberta];
             
-            // Lógica de tempo (se adicionou algo maior que 0, soma ao vencimento)
             let updates = {
                 usuario: user,
                 max_dispositivos: maxD
             };
 
+            // Se o admin mandou adicionar tempo (>0)
             if (val > 0) {
                 let ms = (unit === 'min') ? val * 60000 : (unit === 'hor') ? val * 3600000 : val * 86400000;
-                const novaExp = (dadosLocais[chaveAberta].timestamp_exp || Date.now()) + ms;
-                updates.timestamp_exp = novaExp;
-                updates.expira = new Date(novaExp).toLocaleString('pt-BR');
+                
+                // 1. Adiciona na carga base (para futuros dispositivos que conectarem)
+                if (itemAtual.duracao_ms) {
+                    updates.duracao_ms = itemAtual.duracao_ms + ms;
+                }
+                
+                // 2. Adiciona nos dispositivos que JÁ ESTÃO CONECTADOS
+                if (itemAtual.hwids && typeof itemAtual.hwids === 'object') {
+                    updates.hwids = {};
+                    Object.keys(itemAtual.hwids).forEach(h => {
+                        updates.hwids[h] = itemAtual.hwids[h] + ms;
+                    });
+                }
+                
+                // 3. Legado (caso a chave seja modelo antigo)
+                if(itemAtual.timestamp_exp) {
+                    updates.timestamp_exp = itemAtual.timestamp_exp + ms;
+                    updates.expira = new Date(itemAtual.timestamp_exp + ms).toLocaleString('pt-BR');
+                }
             }
 
             db.ref("keys/" + chaveAberta).update(updates).then(() => { 
-                alert("Alterações salvas!"); 
+                alert("Alterações salvas com sucesso!"); 
                 fecharModal(); 
             });
         }
@@ -335,10 +407,9 @@
         function fecharModal() { document.getElementById("modal").style.display = "none"; document.getElementById("overlay").style.display = "none"; }
         
         function resetarHwid() { 
-            // Apaga tanto o formato antigo quanto a nova lista de múltiplos hwids
             db.ref("keys/" + chaveAberta + "/hwids").remove();
-            db.ref("keys/" + chaveAberta + "/hwid").set("");
-            alert("Dispositivos resetados! A chave agora está livre.");
+            db.ref("keys/" + chaveAberta + "/hwid").set(""); // Limpa o legado também
+            alert("Dispositivos e tempos resetados! A chave agora está 100% livre como nova.");
             fecharModal();
         }
         
@@ -360,22 +431,20 @@
         }
 
         function gerarChaveComTempo() {
-            const t = prompt("Validade (ex: 24 horas, 30 dias):");
+            const t = prompt("Carga da chave para CADA aparelho (ex: 24 horas, 30 dias):");
             if (!t) return;
-            const qtdDisp = prompt("Quantidade máxima de dispositivos (ex: 1, 3, 5):", "1");
+            const qtdDisp = prompt("Quantidade máxima de aparelhos permitidos nesta chave (ex: 1, 3, 5):", "1");
             if (!qtdDisp) return;
 
             const k = "CHETO-" + Math.random().toString(36).substring(2, 9).toUpperCase();
             let ms = t.includes("hora") ? parseInt(t)*3600000 : parseInt(t)*86400000;
-            const exp = Date.now() + ms;
             
             db.ref("keys/" + k).set({ 
                 vendedor: auth.currentUser.email, 
                 usuario: "", 
-                hwid: "", // Mantido vazio por compatibilidade
                 max_dispositivos: parseInt(qtdDisp) || 1,
-                timestamp_exp: exp, 
-                expira: new Date(exp).toLocaleString('pt-BR'), 
+                duracao_ms: ms,        // Novo campo que o seu app vai usar
+                duracao_texto: t,      // Texto visual pro painel
                 criada_em: Date.now() 
             });
         }
