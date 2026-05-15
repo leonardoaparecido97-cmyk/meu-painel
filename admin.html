@@ -97,7 +97,7 @@
                 <thead>
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll()"></th>
-                        <th>CHAVE</th><th>USUÁRIO</th><th>STATUS</th><th>VENCIMENTO</th><th>AÇÃO</th>
+                        <th>CHAVE</th><th>USUÁRIO</th><th>DISP.</th><th>STATUS</th><th>VENCIMENTO</th><th>AÇÃO</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo"></tbody>
@@ -110,12 +110,18 @@
         <h3 id="m-key" style="color: var(--blue); margin: 0 0 15px 0;">CHAVE</h3>
         <div class="row-info"><label>Vendedor:</label><span id="m-vendedor" style="color: var(--yellow)">---</span></div>
         <div class="row-info"><label>Status:</label><span id="m-status">---</span></div>
-        <div class="row-info"><label>HWID:</label><span id="m-hwid" style="font-size:10px; color: #888;">---</span></div>
         <div class="row-info"><label>Vencimento:</label><span id="m-exp-txt">---</span></div>
+        <div class="row-info" style="flex-direction: column;">
+            <label style="margin-bottom: 5px;">HWIDs Registrados:</label>
+            <span id="m-hwid" style="font-size:10px; color: #888; word-break: break-all;">---</span>
+        </div>
 
         <div style="margin-top:15px; border-top: 1px solid var(--border); padding-top: 10px;">
             <label style="font-size:11px; color:#8b949e;">Dono / Usuário:</label>
             <input type="text" id="new-user" placeholder="Nome do cliente">
+            
+            <label style="font-size:11px; color:#8b949e;">Máximo de Dispositivos Permitidos:</label>
+            <input type="number" id="m-max-disp" min="1" value="1">
             
             <label style="font-size:11px; color:#8b949e;">Adicionar Tempo:</label>
             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
@@ -126,7 +132,7 @@
             </div>
             
             <button class="btn-action" style="background: var(--green); color: white;" onclick="salvarAlteracoes()">SALVAR ALTERAÇÕES</button>
-            <button class="btn-action" style="background: var(--yellow); color: black;" onclick="resetarHwid()">RESETAR DISPOSITIVO (HWID)</button>
+            <button class="btn-action" style="background: var(--yellow); color: black;" onclick="resetarHwid()">RESETAR DISPOSITIVOS (HWIDs)</button>
             
             <button class="btn-action" id="btn-del-single" style="background: var(--red); color: white; display: none;" onclick="excluirChave()">EXCLUIR ESTA CHAVE</button>
             
@@ -207,7 +213,14 @@
 
                 let t_exp = item.timestamp_exp || 0;
                 let expirada = (t_exp > 0 && agora > t_exp);
-                let ativa = (item.usuario || item.hwid) && !expirada;
+                
+                // Lógica Multi-Dispositivos
+                let maxD = item.max_dispositivos || 1;
+                // Pega os HWIDs (compatível com chave antiga que usava só 'hwid' ou nova que usa 'hwids' como objeto)
+                let listaHwids = item.hwids ? Object.keys(item.hwids) : (item.hwid ? [item.hwid] : []);
+                let countD = listaHwids.length;
+
+                let ativa = (item.usuario || countD > 0) && !expirada;
                 let pendente = (!ativa && !expirada);
 
                 if (!isAdmin && vend !== userLogado) continue;
@@ -224,6 +237,7 @@
                     <td><input type="checkbox" class="key-cb" value="${id}" ${selectedKeys.has(id)?'checked':''} onclick="updateBulk()"></td>
                     <td><b>${id}</b></td>
                     <td style="color:var(--blue)">${item.usuario || '---'}</td>
+                    <td style="text-align:center;"><b>${countD}</b>/${maxD}</td>
                     <td><span class="status-badge" style="background:${expirada?'var(--red)':ativa?'var(--green)':'var(--yellow)'}">${expirada?'Exp':ativa?'Ativa':'Pend'}</span></td>
                     <td style="color:#8b949e; font-size:10px;">${item.expira || 'N/A'}</td>
                     <td><button onclick="abrirModal('${id}')" style="background:#333; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">⚙️</button></td>
@@ -266,6 +280,68 @@
             } else { bar.classList.add('hidden'); }
         }
 
+        function abrirModal(id) {
+            chaveAberta = id;
+            let item = dadosLocais[id];
+            const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
+            
+            let maxD = item.max_dispositivos || 1;
+            let listaHwids = item.hwids ? Object.keys(item.hwids) : (item.hwid ? [item.hwid] : []);
+
+            document.getElementById("m-key").innerText = id;
+            document.getElementById("m-vendedor").innerText = item.vendedor || "Admin";
+            document.getElementById("m-status").innerText = (item.usuario || listaHwids.length > 0 ? "Ativa" : "Pendente");
+            document.getElementById("m-hwid").innerText = listaHwids.length > 0 ? listaHwids.join(" | ") : "Livre";
+            document.getElementById("m-exp-txt").innerText = item.expira || "N/A";
+            
+            document.getElementById("new-user").value = item.usuario || "";
+            document.getElementById("m-max-disp").value = maxD;
+            
+            db.ref("registros/" + id).once("value", s => {
+                document.getElementById("m-log").innerText = s.val() || "Sem histórico de conexão.";
+            });
+
+            document.getElementById("btn-del-single").style.display = isAdmin ? "block" : "none";
+
+            document.getElementById("modal").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function salvarAlteracoes() {
+            const user = document.getElementById("new-user").value;
+            const maxD = parseInt(document.getElementById("m-max-disp").value) || 1;
+            const val = parseInt(document.getElementById("ext-val").value);
+            const unit = document.getElementById("ext-unit").value;
+            
+            // Lógica de tempo (se adicionou algo maior que 0, soma ao vencimento)
+            let updates = {
+                usuario: user,
+                max_dispositivos: maxD
+            };
+
+            if (val > 0) {
+                let ms = (unit === 'min') ? val * 60000 : (unit === 'hor') ? val * 3600000 : val * 86400000;
+                const novaExp = (dadosLocais[chaveAberta].timestamp_exp || Date.now()) + ms;
+                updates.timestamp_exp = novaExp;
+                updates.expira = new Date(novaExp).toLocaleString('pt-BR');
+            }
+
+            db.ref("keys/" + chaveAberta).update(updates).then(() => { 
+                alert("Alterações salvas!"); 
+                fecharModal(); 
+            });
+        }
+
+        function fecharModal() { document.getElementById("modal").style.display = "none"; document.getElementById("overlay").style.display = "none"; }
+        
+        function resetarHwid() { 
+            // Apaga tanto o formato antigo quanto a nova lista de múltiplos hwids
+            db.ref("keys/" + chaveAberta + "/hwids").remove();
+            db.ref("keys/" + chaveAberta + "/hwid").set("");
+            alert("Dispositivos resetados! A chave agora está livre.");
+            fecharModal();
+        }
+        
         async function deleteSelected() {
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
             if(!isAdmin) { alert("ERRO: Vendedores não podem apagar chaves."); return; }
@@ -276,45 +352,6 @@
             }
         }
 
-        function abrirModal(id) {
-            chaveAberta = id;
-            let item = dadosLocais[id];
-            const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
-            
-            document.getElementById("m-key").innerText = id;
-            document.getElementById("m-vendedor").innerText = item.vendedor || "Admin";
-            document.getElementById("m-status").innerText = (item.usuario || item.hwid ? "Ativa" : "Pendente");
-            document.getElementById("m-hwid").innerText = item.hwid || "Livre";
-            document.getElementById("m-exp-txt").innerText = item.expira || "N/A";
-            document.getElementById("new-user").value = item.usuario || "";
-            
-            db.ref("registros/" + id).once("value", s => {
-                document.getElementById("m-log").innerText = s.val() || "Sem histórico de conexão.";
-            });
-
-            // LOGICA REFORÇADA: Só exibe botão de excluir se o logado for exatamente o ADMIN_EMAIL
-            document.getElementById("btn-del-single").style.display = isAdmin ? "block" : "none";
-
-            document.getElementById("modal").style.display = "block";
-            document.getElementById("overlay").style.display = "block";
-        }
-
-        function salvarAlteracoes() {
-            const user = document.getElementById("new-user").value;
-            const val = parseInt(document.getElementById("ext-val").value);
-            const unit = document.getElementById("ext-unit").value;
-            let ms = (unit === 'min') ? val * 60000 : (unit === 'hor') ? val * 3600000 : val * 86400000;
-            const novaExp = (dadosLocais[chaveAberta].timestamp_exp || Date.now()) + ms;
-            db.ref("keys/" + chaveAberta).update({
-                usuario: user,
-                timestamp_exp: novaExp,
-                expira: new Date(novaExp).toLocaleString('pt-BR')
-            }).then(() => { alert("Atualizado!"); fecharModal(); });
-        }
-
-        function fecharModal() { document.getElementById("modal").style.display = "none"; document.getElementById("overlay").style.display = "none"; }
-        function resetarHwid() { db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Resetado!")); }
-        
         function excluirChave() { 
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
             if(!isAdmin) { alert("Ação negada. Chame o administrador."); return; }
@@ -325,10 +362,22 @@
         function gerarChaveComTempo() {
             const t = prompt("Validade (ex: 24 horas, 30 dias):");
             if (!t) return;
+            const qtdDisp = prompt("Quantidade máxima de dispositivos (ex: 1, 3, 5):", "1");
+            if (!qtdDisp) return;
+
             const k = "CHETO-" + Math.random().toString(36).substring(2, 9).toUpperCase();
             let ms = t.includes("hora") ? parseInt(t)*3600000 : parseInt(t)*86400000;
             const exp = Date.now() + ms;
-            db.ref("keys/" + k).set({ vendedor: auth.currentUser.email, usuario: "", hwid: "", timestamp_exp: exp, expira: new Date(exp).toLocaleString('pt-BR'), criada_em: Date.now() });
+            
+            db.ref("keys/" + k).set({ 
+                vendedor: auth.currentUser.email, 
+                usuario: "", 
+                hwid: "", // Mantido vazio por compatibilidade
+                max_dispositivos: parseInt(qtdDisp) || 1,
+                timestamp_exp: exp, 
+                expira: new Date(exp).toLocaleString('pt-BR'), 
+                criada_em: Date.now() 
+            });
         }
     </script>
 </body>
