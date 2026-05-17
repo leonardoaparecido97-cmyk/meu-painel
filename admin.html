@@ -76,6 +76,7 @@
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="searchInput" placeholder="Buscar por chave ou usuário..." onkeyup="renderizarTabela()">
                 <button onclick="gerarChaveComTempo()" style="background:var(--green); border:none; color:white; padding:0 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ GERAR</button>
+                <button onclick="gerarChaveTeste()" style="background:var(--blue); border:none; color:white; padding:0 15px; border-radius:8px; font-weight:bold; cursor:pointer;">+ CRIAR TESTE</button>
             </div>
 
             <div class="filter-group">
@@ -209,6 +210,11 @@
                 let expirada = (t_exp > 0 && agora > t_exp);
                 let ativa = (item.usuario || item.hwid) && !expirada;
                 let pendente = (!ativa && !expirada);
+                
+                // Trata as chaves de teste na interface (Elas são sempre "Ativas/Públicas")
+                if(item.tipo === "multi_teste") {
+                    ativa = true; pendente = false; expirada = false;
+                }
 
                 if (!isAdmin && vend !== userLogado) continue;
                 if (isAdmin && filtroVendedor !== "todos" && vend !== filtroVendedor) continue;
@@ -259,7 +265,6 @@
             checks.forEach(c => selectedKeys.add(c.value));
             const bar = document.getElementById('bulk-bar');
             
-            // SÓ MOSTRA BARRA DE APAGAR EM MASSA SE FOR ADMIN
             if(selectedKeys.size > 0 && isAdmin) {
                 bar.classList.remove('hidden');
                 document.getElementById('bulk-text').innerText = selectedKeys.size + " selecionadas";
@@ -283,8 +288,15 @@
             
             document.getElementById("m-key").innerText = id;
             document.getElementById("m-vendedor").innerText = item.vendedor || "Admin";
-            document.getElementById("m-status").innerText = (item.usuario || item.hwid ? "Ativa" : "Pendente");
-            document.getElementById("m-hwid").innerText = item.hwid || "Livre";
+            
+            if(item.tipo === "multi_teste") {
+                document.getElementById("m-status").innerText = "Chave de Teste Pública";
+                document.getElementById("m-hwid").innerText = "Múltiplos Dispositivos";
+            } else {
+                document.getElementById("m-status").innerText = (item.usuario || item.hwid ? "Ativa" : "Pendente");
+                document.getElementById("m-hwid").innerText = item.hwid || "Livre";
+            }
+            
             document.getElementById("m-exp-txt").innerText = item.expira || "N/A";
             document.getElementById("new-user").value = item.usuario || "";
             
@@ -292,7 +304,6 @@
                 document.getElementById("m-log").innerText = s.val() || "Sem histórico de conexão.";
             });
 
-            // LOGICA REFORÇADA: Só exibe botão de excluir se o logado for exatamente o ADMIN_EMAIL
             document.getElementById("btn-del-single").style.display = isAdmin ? "block" : "none";
 
             document.getElementById("modal").style.display = "block";
@@ -313,7 +324,16 @@
         }
 
         function fecharModal() { document.getElementById("modal").style.display = "none"; document.getElementById("overlay").style.display = "none"; }
-        function resetarHwid() { db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Resetado!")); }
+        
+        function resetarHwid() { 
+            if(dadosLocais[chaveAberta].tipo === "multi_teste") {
+                if(confirm("Deseja zerar os acessos de TODOS os testes desta chave?")) {
+                    db.ref("keys/" + chaveAberta + "/hwids_liberados").set({ "admin_init": 0 }).then(() => alert("Acessos de teste resetados!"));
+                }
+            } else {
+                db.ref("keys/" + chaveAberta + "/hwid").set("").then(() => alert("Resetado!")); 
+            }
+        }
         
         function excluirChave() { 
             const isAdmin = (auth.currentUser.email === ADMIN_EMAIL);
@@ -329,6 +349,24 @@
             let ms = t.includes("hora") ? parseInt(t)*3600000 : parseInt(t)*86400000;
             const exp = Date.now() + ms;
             db.ref("keys/" + k).set({ vendedor: auth.currentUser.email, usuario: "", hwid: "", timestamp_exp: exp, expira: new Date(exp).toLocaleString('pt-BR'), criada_em: Date.now() });
+        }
+
+        function gerarChaveTeste() {
+            const min = prompt("Quantos MINUTOS cada celular terá para testar? (Ex: 10)");
+            if (!min || isNaN(min)) return;
+            
+            const k = "TESTE-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+            
+            db.ref("keys/" + k).set({ 
+                vendedor: auth.currentUser.email, 
+                tipo: "multi_teste", 
+                tempo_minutos: parseInt(min), 
+                hwids_liberados: { "admin_init": 0 }, 
+                timestamp_exp: 0, 
+                expira: "Pública (Testes " + min + "m)", 
+                criada_em: Date.now(),
+                status: "Teste"
+            }).then(() => alert("Chave de Teste criada com sucesso!\nCopie para divulgar: " + k));
         }
     </script>
 </body>
